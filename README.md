@@ -1,6 +1,8 @@
-# Profile Readme Stats
+# Profile Readme Stats Mod
 
 Showcase your github stats on your profile README.md.
+
+Forked from [teoxoy/profile-readme-stats](https://github.com/teoxoy/profile-readme-stats) with added feature to **include user's contributed repositories for language stats**.
 
 This action provides [template strings](#template-strings) that are replaced with their respective values when the action runs.
 
@@ -9,13 +11,14 @@ This action provides [template strings](#template-strings) that are replaced wit
 ## Table of contents
 
 <!-- prettier-ignore-start -->
-- [Profile Readme Stats](#profile-readme-stats)
+- [Profile Readme Stats Mod](#profile-readme-stats-mod)
   - [Table of contents](#table-of-contents)
   - [Action Inputs](#action-inputs)
     - [`token`](#token)
     - [`template`](#template)
     - [`readme`](#readme)
     - [`includeForks`](#includeforks)
+    - [`includeOrgRepos`](#includeOrgRepos)
   - [Template Strings](#template-strings)
     - [General](#general)
       - [`{{ ACCOUNT_AGE }}`](#-account_age-)
@@ -62,6 +65,10 @@ Path to generated file (default: `./README.md`)
 ### `includeForks`
 
 Include forked repositories when calculating the stats (default: `false`)
+
+### `includeOrgRepos`
+
+Include private org repositories contributions when calculating the stats (default: `false`)
 
 ## Template Strings
 
@@ -172,9 +179,11 @@ jobs:
       with:
         fetch-depth: 0
     - name: Generate README.md
-      uses: teoxoy/profile-readme-stats@v2
+      uses: tarunesh1234/profile-readme-stats-mod@v1.0.0
       with:
         token: ${{ secrets.USER_TOKEN }}
+        includeForks: true
+        includeOrgRepos: true
     - name: Update README.md
       run: |
         if [[ "$(git status --porcelain)" != "" ]]; then

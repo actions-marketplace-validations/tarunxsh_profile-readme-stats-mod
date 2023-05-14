@@ -7621,12 +7621,10 @@ function run() {
         const readme = core.getInput('readme');
         const includeForks = core.getInput('includeForks') === 'true';
         const includeOrgRepos = core.getInput('includeOrgRepos') === 'true';
-        console.log({ includeOrgRepos });
         const gql = graphql_1.graphql.defaults({
             headers: { authorization: `token ${token}` },
         });
         const { accountAge, issues, pullRequests, contributionYears, gists, repositories, repositoryNodes, repositoriesContributedTo, stars, } = yield getUserInfo(gql, { includeForks, includeOrgRepos });
-        console.log(repositoryNodes);
         const totalCommits = yield getTotalCommits(gql, contributionYears);
         const totalReviews = yield getTotalReviews(gql, contributionYears);
         let o = yield fs_1.promises.readFile(template, { encoding: 'utf8' });
@@ -7705,7 +7703,7 @@ function getUserInfo(gql, { includeForks = false, includeOrgRepos = false }) {
         }
         rateLimit { cost remaining resetAt }
     }`;
-        console.log(query);
+        console.log("github graphql: ", query);
         const { viewer: { createdAt, issues, pullRequests, contributionsCollection: { contributionYears }, gists, repositories, repositoriesContributedTo, }, } = yield gql(query);
         const accountAgeMS = Date.now() - new Date(createdAt).getTime();
         const accountAge = Math.floor(accountAgeMS / (1000 * 60 * 60 * 24 * 365.25));

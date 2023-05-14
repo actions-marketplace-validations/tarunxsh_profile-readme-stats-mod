@@ -28,7 +28,6 @@ async function run(): Promise<void> {
     const readme = core.getInput('readme')
     const includeForks = core.getInput('includeForks') === 'true'
     const includeOrgRepos = core.getInput('includeOrgRepos') === 'true'
-    console.log({includeOrgRepos})
 
     const gql = graphql.defaults({
         headers: { authorization: `token ${token}` },
@@ -45,8 +44,6 @@ async function run(): Promise<void> {
         repositoriesContributedTo,
         stars,
     } = await getUserInfo(gql, { includeForks, includeOrgRepos })
-
-    console.log(repositoryNodes)
 
     const totalCommits = await getTotalCommits(gql, contributionYears)
     const totalReviews = await getTotalReviews(gql, contributionYears)
@@ -152,7 +149,7 @@ async function getUserInfo(gql: typeof graphql, { includeForks = false, includeO
         rateLimit { cost remaining resetAt }
     }`
 
-    console.log(query);
+    console.log("github graphql: ", query);
 
     interface Result {
         viewer: {

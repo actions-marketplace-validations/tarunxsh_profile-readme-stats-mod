@@ -1,4 +1,4 @@
-name: 'Profile Readme Stats'
+name: 'Profile Readme Stats Mod'
 description: 'Showcase your github stats on your profile README.md'
 inputs:
   token:
@@ -14,6 +14,10 @@ inputs:
     default: './README.md'
   includeForks:
     description: 'Include forked repositories when calculating the stats'
+    required: false
+    default: false
+  includeOrgRepos:
+    description: 'Include Org repositories when calculating the stats'
     required: false
     default: false
 runs:

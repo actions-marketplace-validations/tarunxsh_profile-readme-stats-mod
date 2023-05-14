@@ -27,6 +27,7 @@ async function run(): Promise<void> {
     const template = core.getInput('template')
     const readme = core.getInput('readme')
     const includeForks = core.getInput('includeForks') === 'true'
+    const includeOrgRepos = core.getInput('includeOrgRepos') === 'true'
 
     const gql = graphql.defaults({
         headers: { authorization: `token ${token}` },
@@ -42,7 +43,7 @@ async function run(): Promise<void> {
         repositoryNodes,
         repositoriesContributedTo,
         stars,
-    } = await getUserInfo(gql, includeForks)
+    } = await getUserInfo(gql, { includeForks, includeOrgRepos })
 
     const totalCommits = await getTotalCommits(gql, contributionYears)
     const totalReviews = await getTotalReviews(gql, contributionYears)
@@ -85,7 +86,27 @@ interface Repository extends Starrable {
     }
 }
 
-async function getUserInfo(gql: typeof graphql, includeForks = false) {
+async function getUserInfo(gql: typeof graphql, { includeForks = false, includeOrgRepos = false }) {
+    const repositoriesContributedToQuery = includeOrgRepos ? `repositoriesContributedTo(first: 100) {
+        totalCount
+        nodes {
+            stargazers {
+                totalCount
+            }
+            languages(first: 100) {
+                edges {
+                    size
+                    node {
+                        color
+                        name
+                    }
+                }
+            }
+        }
+    }` : `repositoriesContributedTo {
+        totalCount
+    }`;
+    
     const query = `{
         viewer {
             createdAt
@@ -123,9 +144,7 @@ async function getUserInfo(gql: typeof graphql, includeForks = false) {
                     }
                 }
             }
-            repositoriesContributedTo {
-                totalCount
-            }
+            ${repositoriesContributedToQuery}
         }
         rateLimit { cost remaining resetAt }
     }`
@@ -182,7 +201,7 @@ async function getUserInfo(gql: typeof graphql, includeForks = false) {
         contributionYears,
         gists: gists.totalCount,
         repositories: repositories.totalCount,
-        repositoryNodes: repositories.nodes,
+        repositoryNodes: includeOrgRepos ? [...repositories.nodes, ...repositoriesContributedTo.nodes] : repositories.nodes,
         repositoriesContributedTo: repositoriesContributedTo.totalCount,
         stars,
     }

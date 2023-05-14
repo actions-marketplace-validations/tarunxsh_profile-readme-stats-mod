@@ -1726,6 +1726,10 @@ function checkBypass(reqUrl) {
     if (!reqUrl.hostname) {
         return false;
     }
+    const reqHost = reqUrl.hostname;
+    if (isLoopbackAddress(reqHost)) {
+        return true;
+    }
     const noProxy = process.env['no_proxy'] || process.env['NO_PROXY'] || '';
     if (!noProxy) {
         return false;
@@ -1751,13 +1755,24 @@ function checkBypass(reqUrl) {
         .split(',')
         .map(x => x.trim().toUpperCase())
         .filter(x => x)) {
-        if (upperReqHosts.some(x => x === upperNoProxyItem)) {
+        if (upperNoProxyItem === '*' ||
+            upperReqHosts.some(x => x === upperNoProxyItem ||
+                x.endsWith(`.${upperNoProxyItem}`) ||
+                (upperNoProxyItem.startsWith('.') &&
+                    x.endsWith(`${upperNoProxyItem}`)))) {
             return true;
         }
     }
     return false;
 }
 exports.checkBypass = checkBypass;
+function isLoopbackAddress(host) {
+    const hostLower = host.toLowerCase();
+    return (hostLower === 'localhost' ||
+        hostLower.startsWith('127.') ||
+        hostLower.startsWith('[::1]') ||
+        hostLower.startsWith('[0:0:0:0:0:0:0:1]'));
+}
 //# sourceMappingURL=proxy.js.map
 
 /***/ }),
@@ -7605,10 +7620,13 @@ function run() {
         const template = core.getInput('template');
         const readme = core.getInput('readme');
         const includeForks = core.getInput('includeForks') === 'true';
+        const includeOrgRepos = core.getInput('includeOrgRepos') === 'true';
+        console.log({ includeOrgRepos });
         const gql = graphql_1.graphql.defaults({
             headers: { authorization: `token ${token}` },
         });
-        const { accountAge, issues, pullRequests, contributionYears, gists, repositories, repositoryNodes, repositoriesContributedTo, stars, } = yield getUserInfo(gql, includeForks);
+        const { accountAge, issues, pullRequests, contributionYears, gists, repositories, repositoryNodes, repositoriesContributedTo, stars, } = yield getUserInfo(gql, { includeForks, includeOrgRepos });
+        console.log(repositoryNodes);
         const totalCommits = yield getTotalCommits(gql, contributionYears);
         const totalReviews = yield getTotalReviews(gql, contributionYears);
         let o = yield fs_1.promises.readFile(template, { encoding: 'utf8' });
@@ -7625,8 +7643,27 @@ function run() {
         yield fs_1.promises.writeFile(readme, o);
     });
 }
-function getUserInfo(gql, includeForks = false) {
+function getUserInfo(gql, { includeForks = false, includeOrgRepos = false }) {
     return __awaiter(this, void 0, void 0, function* () {
+        const repositoriesContributedToQuery = includeOrgRepos ? `repositoriesContributedTo(first: 100) {
+        totalCount
+        nodes {
+            stargazers {
+                totalCount
+            }
+            languages(first: 100) {
+                edges {
+                    size
+                    node {
+                        color
+                        name
+                    }
+                }
+            }
+        }
+    }` : `repositoriesContributedTo {
+        totalCount
+    }`;
         const query = `{
         viewer {
             createdAt
@@ -7664,12 +7701,11 @@ function getUserInfo(gql, includeForks = false) {
                     }
                 }
             }
-            repositoriesContributedTo {
-                totalCount
-            }
+            ${repositoriesContributedToQuery}
         }
         rateLimit { cost remaining resetAt }
     }`;
+        console.log(query);
         const { viewer: { createdAt, issues, pullRequests, contributionsCollection: { contributionYears }, gists, repositories, repositoriesContributedTo, }, } = yield gql(query);
         const accountAgeMS = Date.now() - new Date(createdAt).getTime();
         const accountAge = Math.floor(accountAgeMS / (1000 * 60 * 60 * 24 * 365.25));
@@ -7683,7 +7719,7 @@ function getUserInfo(gql, includeForks = false) {
             contributionYears,
             gists: gists.totalCount,
             repositories: repositories.totalCount,
-            repositoryNodes: repositories.nodes,
+            repositoryNodes: includeOrgRepos ? [...repositories.nodes, ...repositoriesContributedTo.nodes] : repositories.nodes,
             repositoriesContributedTo: repositoriesContributedTo.totalCount,
             stars,
         };

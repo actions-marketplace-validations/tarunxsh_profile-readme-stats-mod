@@ -176,6 +176,7 @@ async function getUserInfo(gql: typeof graphql, { includeForks = false, includeO
             }
             repositoriesContributedTo: {
                 totalCount: number
+                nodes: Repository[]
             }
         }
     }
